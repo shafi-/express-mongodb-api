@@ -3,58 +3,48 @@ import db from "./../db/db";
 import Todo from "./../models/Todo"
 
 class TodoController {
-    static index (req, res) {
-        Todo.find({}, function (err, todo) {
+    index (req, res) {
+        Todo.find({}, function (err, todos) {
             if(err) res.send(err);
-            else console.log(todo);
-            Controller.success(res, db);
+            else console.log(todos);
+            Controller.success(res, todos);
         });
     };
 
-    static save(req, res) {
+    save(req, res) {
         let data = req.body;
-        let id = 0;
-        db.data.map(t => id = (t.id > id) ? t.id : id);
-
-        const item = {
-            id: id + 1,
+        let item = new Todo({
             title: data.name,
             description: data.description
-        };
-        db.insert(item);
-
-        Controller.success(res, item);
+        });
+        item.save().then(() => {
+            Controller.success(res, item);
+        }).catch((err) => Controller.error(res, err.message, err.errors));
     };
 
-    static show (req, res) {
+    show (req, res) {
         let id = parseInt(req.params.id);
-        let msg = '';
-        const item = db.find(id);
 
-        if (item.length === 0) msg = 'No todo found';
-
-        res.status(200).json({
-            success: (msg.length === 0),
-            todo: item,
-            msg: msg
+        Todo.findById(id, (err, item) => {
+            if(err) Controller.error(res, err);
+            Controller.success(res, item);
         });
     };
 
-    static update (req, res) {
+    update (req, res) {
         let id = parseInt(req.params.id);
-        let item = db.find(id);
-        if (req.body.name) item.title = req.body.name;
-        if (req.body.description) item.description = req.body.description;
-        let success = db.replace(id, item);
+        Todo.findById(id, (err, item) => {
+            if(err) Controller.error(res, err);
 
-        res.status(200).json({
-            success: success,
-            msg: 'TODO updated',
-            todo: item
+            item.title = req.body.name;
+            item.description = req.body.description;
+
+            item.update(item);
         });
+
     };
 
-    static remove (req, res) {
+    remove (req, res) {
         const id = req.params.id;
         let rowAffected = db.deleteTodo(id);
         res.status(200).json({
@@ -65,4 +55,4 @@ class TodoController {
     };
 }
 
-export default TodoController
+export default new TodoController
